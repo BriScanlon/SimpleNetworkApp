@@ -10,7 +10,6 @@ class State(Enum):
     Error = 99
 
 
-
 class Server:
     def __init__(self, host, port):
         # define network parameters
@@ -36,23 +35,74 @@ class Server:
             # accept a client connection define the client socket and address
             client_connection, address = s.accept()
             print(f"connection established with {address}.")
-            client_connection.send(bytes("Welcome to the Game Server\n**************************\n\nOptions:\nPress 1 to Enter your name.\nPress 2 to roll a dice", "utf-8"))
+            client_connection.send(bytes("Welcome to the Game Server\n**************************\n\nPlease type Login and press enter to log in to the server", "utf-8"))
 
             while play:
-                    data = client_connection.recv(1024)
-                    if not data:
-                        break
-                    # Do some processing
-                    message = data.decode().upper()
-                    if message.startswith("2"):
-                        message = str(gamefunctions.d6())
-                        client_connection.send(message.encode())
-                    # elif message.startswith("1"):
-                    #     # Return a message to the client
-                    #     message = "Please type in your name and press enter\n"
-                    #     client_connection.send(message.encode())
-                    #     client_name = data.decode().upper
+                data = client_connection.recv(1024)
+                if not data:
+                    break
+                # Do some processing
+                message = data.decode().upper()
+                # Handle termination
+                if message == "Quit":
+                    message = "Acknowledge quitting"
+                    self.running = False
+                else:
+                    # Handle simple state:
+                    if self.currentState == State.Start:
+                        if message.startswith("LOGIN"):
+                            self.previousState = self.currentState
+                            self.currentState = State.Login
+                            message = "Login Menu Loading..."
+                        # elif message.startswith("Login"):
+                        #     self.previousState = self.currentState
+                        #     self.currentState = State.Login
+                        #     message = "Moving to Login"
+                        else:
+                            message = "You must type in Login and press enter"
+                    elif self.currentState == State.Login:
+                        if message.startswith(""):
+                            self.previousState = self.currentState
+                            self.currentState = State.Counting
+                            message = "Moving to count"
+                        else:
+                            message = "Echoing: " + message
+                    elif self.currentState == State.Counting:
+                        if message.startswith("Echo"):
+                            self.previousState = self.currentState
+                            self.currentState = State.Echo
+                            message = "Moving to Echo"
+                        else:
+                            try:
+                                cmd, arg = message.split(" ", 1)
+                            except ValueError:
+                                cmd = "Error"
 
+                            try:
+                                value = int(arg)
+                            except ValueError:
+                                value = 0
+
+                            if cmd.startswith("Add"):
+                                self.counter += value
+                            elif cmd.startswith("Sub"):
+                                self.counter -= value
+                            elif cmd.startswith("Mul"):
+                                self.counter = self.counter * value
+                            elif cmd.startswith("Div"):
+                                self.counter = self.counter / value
+                            else:
+                                pass
+
+                            message = str(self.counter)
+
+                    else:
+                        message = "An Error has occurred, returning to start state"
+                        self.currentState = State.Start
+                        self.previousState = State.Error
+
+                # send back the response
+                client_connection.sendall(message.encode("utf-8"))
 
 if __name__ == "__main__":
     server = Server("127.0.0.1", 50001)
