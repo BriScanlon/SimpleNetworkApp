@@ -9,9 +9,9 @@ class State(Enum):
     Play = 4
     Error = 99
 
-def readFile(name):
-    dataLine = name.readLine()
-    decryptedLine = decrypt(dataLine)
+# def readFile(name):
+#     dataLine = name.readLine()
+#     decryptedLine = decrypt(dataLine)
 
 
 class Server:
