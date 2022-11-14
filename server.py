@@ -9,6 +9,10 @@ class State(Enum):
     Play = 4
     Error = 99
 
+def readFile(name):
+    dataLine = name.readLine()
+    decryptedLine = decrypt(dataLine)
+
 
 class Server:
     def __init__(self, host, port):
@@ -62,6 +66,18 @@ class Server:
                         else:
                             message = "You must type in Login and press enter"
                     elif self.currentState == State.Login:
+                        if unameReceived:
+                            if message.endswith("PASSWORD"):
+                                self.previousState = self.currentState
+                                self.currentState = State.Menus
+                                message = "Moving to Menus..."
+                            else:
+                                unameReceived = False
+                                message = "Incorrect password..."
+                        else:
+                            if message.startswith("ADMIN"):
+                                unameReceived = True
+                                message = "Password?"
                         if message.startswith("ADMIN"):
                             if message.endswith("PASSWORD"):
                                 self.previousState = self.currentState
