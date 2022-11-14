@@ -1,6 +1,13 @@
 import socket
 import gamefunctions
-import enum
+from enum import Enum
+
+class State(Enum):
+    Start = 1
+    Login = 2
+    Menus = 3
+    Play = 4
+    Error = 99
 
 
 class Server:
@@ -8,12 +15,16 @@ class Server:
         # define network parameters
         self.HOST = host
         self.PORT = port
-
+        self.currentState = State.Start
+        self.previousState = None
+        self.running = True
+        self.counter = 0
 
     def run(self):
         play = True
         # define socket object
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+
             # set the socket to re-useable
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             # bind the socket to address and port
