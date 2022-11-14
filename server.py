@@ -48,7 +48,8 @@ class Server:
                     message = "Acknowledge quitting"
                     self.running = False
                 else:
-                    # Handle simple state:
+                    # State machines cover the following:
+                    #
                     if self.currentState == State.Start:
                         if message.startswith("LOGIN"):
                             self.previousState = self.currentState
@@ -61,13 +62,14 @@ class Server:
                         else:
                             message = "You must type in Login and press enter"
                     elif self.currentState == State.Login:
-                        if message.startswith(""):
-                            self.previousState = self.currentState
-                            self.currentState = State.Counting
-                            message = "Moving to count"
+                        if message.startswith("ADMIN"):
+                            if message.endswith("PASSWORD"):
+                                self.previousState = self.currentState
+                                self.currentState = State.Menus
+                                message = "Moving to Menus..."
                         else:
                             message = "Echoing: " + message
-                    elif self.currentState == State.Counting:
+                    elif self.currentState == State.Menus:
                         if message.startswith("Echo"):
                             self.previousState = self.currentState
                             self.currentState = State.Echo
@@ -82,18 +84,6 @@ class Server:
                                 value = int(arg)
                             except ValueError:
                                 value = 0
-
-                            if cmd.startswith("Add"):
-                                self.counter += value
-                            elif cmd.startswith("Sub"):
-                                self.counter -= value
-                            elif cmd.startswith("Mul"):
-                                self.counter = self.counter * value
-                            elif cmd.startswith("Div"):
-                                self.counter = self.counter / value
-                            else:
-                                pass
-
                             message = str(self.counter)
 
                     else:
