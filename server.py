@@ -10,6 +10,7 @@ class State(Enum):
     Error = 99
 
 
+
 class Server:
     def __init__(self, host, port):
         # define network parameters
