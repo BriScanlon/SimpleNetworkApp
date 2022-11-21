@@ -9,6 +9,9 @@ class State(Enum):
     Play = 4
     Error = 99
 
+
+unameReceived = False
+
 # def readFile(name):
 #     dataLine = name.readLine()
 #     decryptedLine = decrypt(dataLine)
@@ -23,6 +26,46 @@ class Server:
         self.previousState = None
         self.running = True
         self.counter = 0
+
+
+    def start(self, message):
+        if message.startswith("LOGIN"):
+            self.previousState = self.currentState
+            self.currentState = State.Login
+            message = "Login Menu Loading..."
+        # elif message.startswith("Login"):
+        #     self.previousState = self.currentState
+        #     self.currentState = State.Login
+        #     message = "Moving to Login"
+        else:
+            message = "You must type in Login and press enter"
+        return message
+
+    def login(self, message, unameReceived):
+        # while unameReceived is false, skip asking for the password and ask for the username instead
+        # when unameReceived is true, ask for the password.
+        if unameReceived:
+            if message.endswith("PASSWORD"):
+                self.previousState = self.currentState
+                self.currentState = State.Menus
+                message = "Moving to Menus..."
+            else:
+                unameReceived = False
+                message = "Incorrect password..."
+        else:
+            if message.startswith("ADMIN"):
+                unameReceived = True
+                message = "Password?"
+            message = "Echoing: " + message + str(self.currentState)
+        return message, unameReceived
+
+
+    def menus(self, message):
+        if message.startswith("Echo"):
+            self.previousState = self.currentState
+            self.currentState = State.Echo
+            message = "Moving to Echo"
+        return message
 
     def run(self):
         play = True
@@ -55,57 +98,28 @@ class Server:
                     # State machines cover the following:
                     #
                     if self.currentState == State.Start:
-                        if message.startswith("LOGIN"):
-                            self.previousState = self.currentState
-                            self.currentState = State.Login
-                            message = "Login Menu Loading..."
-                        # elif message.startswith("Login"):
-                        #     self.previousState = self.currentState
-                        #     self.currentState = State.Login
-                        #     message = "Moving to Login"
-                        else:
-                            message = "You must type in Login and press enter"
+                        message = self.start(message)
                     elif self.currentState == State.Login:
-                        if unameReceived:
-                            if message.endswith("PASSWORD"):
-                                self.previousState = self.currentState
-                                self.currentState = State.Menus
-                                message = "Moving to Menus..."
-                            else:
-                                unameReceived = False
-                                message = "Incorrect password..."
-                        else:
-                            if message.startswith("ADMIN"):
-                                unameReceived = True
-                                message = "Password?"
-                        if message.startswith("ADMIN"):
-                            if message.endswith("PASSWORD"):
-                                self.previousState = self.currentState
-                                self.currentState = State.Menus
-                                message = "Moving to Menus..."
-                        else:
-                            message = "Echoing: " + message
+
+                        message, unameReceived = self.login(message, unameReceived)
                     elif self.currentState == State.Menus:
-                        if message.startswith("Echo"):
-                            self.previousState = self.currentState
-                            self.currentState = State.Echo
-                            message = "Moving to Echo"
-                        else:
-                            try:
-                                cmd, arg = message.split(" ", 1)
-                            except ValueError:
-                                cmd = "Error"
-
-                            try:
-                                value = int(arg)
-                            except ValueError:
-                                value = 0
-                            message = str(self.counter)
-
+                        message = self.menus(message)
                     else:
-                        message = "An Error has occurred, returning to start state"
-                        self.currentState = State.Start
-                        self.previousState = State.Error
+                        try:
+                            cmd, arg = message.split(" ", 1)
+                        except ValueError:
+                            cmd = "Error"
+
+                        try:
+                            value = int(arg)
+                        except ValueError:
+                            value = 0
+                        message = str(self.counter)
+
+                    # else:
+                    #     message = "An Error has occurred, returning to start state"
+                    #     self.currentState = State.Start
+                    #     self.previousState = State.Error
 
                 # send back the response
                 client_connection.sendall(message.encode("utf-8"))
