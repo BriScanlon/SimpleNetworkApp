@@ -61,9 +61,8 @@ class Server:
             if not self.running and self.oBuffer.empty():
                 self.writing = False
             if not self.oBuffer.empty():
-                self.conn.sendall(self.oBuffer.get().encode("utf-8"))
+                self.client_connection.sendall(self.oBuffer.get().encode("utf-8"))
                 time.sleep(1)
-
 
     def read(self):
         print("Read thread started")
@@ -86,27 +85,27 @@ class Server:
                         self.reading = False
                         break
                 # attempt to read data from the data socket
-                try:
-                    data = self.client_connection.recv(1024)
-                    if data:
-                        message = data.decode("utf-8")
-                        self.iBuffer.put(message)
-                except socket.error as error:
-                    err = error.args[0]
-                    # no data on socket, but socket still exists - wait and retry
-                    if err == errno.EAGAIN or err == errno.EWOULDBLOCK:
-                        time.sleep (1)
-                        print(f"no data to read from {self.addr}")
-                    else:
-                        # an actual error has occurred, shut down the program as our sole client has now disconnected
-                        self.running = False
-                        self.client_connection.shutdown(socket.SHUT_RDWR)
+                    try:
+                        data = self.client_connection.recv(1024)
+                        if data:
+                            message = data.decode("utf-8")
+                            self.iBuffer.put(message)
+                    except socket.error as error:
+                        err = error.args[0]
+                        # no data on socket, but socket still exists - wait and retry
+                        if err == errno.EAGAIN or err == errno.EWOULDBLOCK:
+                            time.sleep (1)
+                            print(f"no data to read from {self.addr}")
+                        else:
+                            # an actual error has occurred, shut down the program as our sole client has now disconnected
+                            self.running = False
+                            self.client_connection.shutdown(socket.SHUT_RDWR)
                 # self.client_connection.send(
                 #     bytes("Welcome to the Game Server.  Please type Login and press enter to log in to the server",
                 #           "utf-8"))
 
     def process(self):
-    # start the reading and writing threads
+        # start the reading and writing threads
         self.readThread.start()
         self.writeThread.start()
 
@@ -141,7 +140,6 @@ class Server:
         # wait for the other two threads to complete and shutdown before continuing
         self.readThread.join()
         self.writeThread.join()
-
 
     def start(self, message):
         if message.startswith("LOGIN"):
