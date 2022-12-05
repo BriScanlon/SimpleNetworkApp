@@ -1,9 +1,4 @@
-import socket
-import gamefunctions
-import errno
-import threading
-import queue
-import time
+from AbstractedServer import Server
 from enum import Enum
 
 
@@ -21,16 +16,10 @@ class State(Enum):
 #     decryptedLine = decrypt(dataLine)
 
 
-class Server:
+class abstractServer:
 
     def __init__(self, host="127.0.0.1", port=50000):
-        # define network parameters
-        self.HOST = host
-        self.PORT = port
-
-        # read and write queues for the buffer
-        self.iBuffer = queue.Queue()
-        self.oBuffer = queue.Queue()
+        self.server = Server(host, port)
 
         # Variables dealing with state management and functionality
         self.currentState = State.Start
@@ -40,16 +29,6 @@ class Server:
 
         # message handling variables
         self.running = True
-        self.writing = True
-        self.reading = True
-        self.processing = True
-
-        # single connection and address variables
-        self.client_connection = None
-        self.addr = None
-
-        # variables for handling login states (has username been received?)
-        self.unameReceived = False
 
         # create threads
         self.readThread = threading.Thread(target=self.read)
@@ -106,23 +85,17 @@ class Server:
 
     def process(self):
         # start the reading and writing threads
-        self.readThread.start()
-        self.writeThread.start()
+        self.server.process()
 
         # how to handle the program shutting down
-        while self.processing:
-            if not self.running:
-                self.processing = False
-                break
-
-            # only attempt to process a message if there is a message in hte incoming message buffer
-            if not self.iBuffer.empty():
-                message = self.iBuffer.get()
-
-                # Handle termination
-                if message == "QUIT":
-                    message = "Acknowledge quitting"
+        while self.running:
+            # only try to process a message if there is a message in the incoming message buffer
+            message = self.server.getMessage()
+            if message:
+                if message == "Quit":
+                    message = "Acknowledge quitting, good-bye"
                     self.running = False
+
                 else:
                     if self.currentState == State.Start:
                         message = self.start(message)
@@ -136,10 +109,10 @@ class Server:
                         message = self.complex(message)
                     else:
                         message = self.handle_error(message)
-                self.oBuffer.put(message)
-        # wait for the other two threads to complete and shutdown before continuing
-        self.readThread.join()
-        self.writeThread.join()
+                if message:
+                    self.server.pushMessage(message)
+        self.server.quit()
+
 
     def start(self, message):
         if message.startswith("LOGIN"):
@@ -199,6 +172,19 @@ class Server:
             self.currentState = State.Play
             message = "Moving to Play"
         return message
+
+    def complex(self, message):
+        # Complex now only needs to manage the state itself, as the network flow change is handled by the network and
+        # the buffers.
+        if message == "TERMINATE":
+            message = "".join(self.messages)
+            self.currentState = State.Start
+            self.previousState = State.Complex
+        else:
+            self.messages.append(message)
+            message = None
+        return message
+
 
     def handle_error(self, message):
         message = "An Error has occurred, returning to start state"
