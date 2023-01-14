@@ -33,6 +33,7 @@ class abstractClient:
         self.client.quit()
         self.uiThread.join()
 
+
 if __name__ == "__main__":
     client = abstractClient("127.0.0.1", 50001)
     client.process()

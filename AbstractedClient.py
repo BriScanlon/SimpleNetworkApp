@@ -3,6 +3,7 @@ import errno
 import time
 import threading
 import queue
+import rsa
 
 class Client:
     def __init__(self, host="127.0.0.1", port=50000):

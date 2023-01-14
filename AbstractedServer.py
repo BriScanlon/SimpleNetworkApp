@@ -3,6 +3,8 @@ import socket
 import threading
 import queue
 import time
+import rsa
+
 
 class Server:
     def __init__(self, host="127.0.0.1", port=50000):
